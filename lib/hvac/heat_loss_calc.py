@@ -67,13 +67,13 @@ class BuildingElement:
         return self._A
 
     @property
-    def t(self):
+    def thickness(self):
         """Thickness of building element [m]"""
         return self._t
 
 
 class BuildingCompositeElement:
-    """Multiple building elements that are parallel connected (in the same plane)"""
+    """Multiple building elements that are parallel connected (laying in the same plane)"""
     def __init__(self, *building_elements):
         self.building_elements = building_elements
         self._r = 0.0
@@ -105,6 +105,14 @@ class BuildingCompositeElement:
         self._ca = C / A
         return self._ca
 
+    @property
+    def thickness(self):
+        """
+        Thickness of the building element [m]
+        The thickness of the thickest building element is returned.
+        """
+        return max([elem.thickness for elem in self.building_elements])
+
 
 class BuildingPart:
     """Multiple building elements in series."""
@@ -114,7 +122,7 @@ class BuildingPart:
         self._r_conv_out = r_conv_out   # spec. convection resistance at outside surface of building part [(m^2.K)/W]
         self._r = 0.0                   # spec. thermal resistance of building part [(m^2.K)/W]
         self._ca = 0.0                  # spec. thermal capacity per unit area of building part [J/(m^2.K)]
-        self._ca_eff = 0.0              # spec. thermal effective capacity per unit area of building part [J/(m^2.K)]
+        self._ca_eff = None             # spec. thermal effective capacity per unit area of building part [J/(m^2.K)]
         self._t = 0.0                   # total thickness of building part [m]
         self._corr_u = corr_u           # correction term for u-value
         self.T_in = 0.0                 # temperature at inside of building part [°C]
@@ -211,8 +219,16 @@ class BuildingPart:
 
     @property
     def ca_eff(self):
-        """Specific thermal effective capacity of building part [J/(m^2.K)]"""
+        """
+        Specific thermal effective capacity of building part [J/(m^2.K)]
+        If None is returned, call 'calculate_effective_capacity(T_out_ampl=5.0, T_out_period=24.0)' first.
+        """
         return self._ca_eff
+
+    @property
+    def thickness(self):
+        """Thickness of the building part [m]"""
+        return sum([elem.thickness for elem in self.building_elements])
 
 
 class Space:
