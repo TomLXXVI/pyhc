@@ -1,7 +1,7 @@
 import sys
 
 deps = [
-    '../lib'
+    '../../lib'
 ]
 
 sys.path.extend(deps)
