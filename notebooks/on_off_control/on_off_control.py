@@ -10,10 +10,10 @@ params = [
     ('<b>Time step</b>', None, None),                                               # 0
     ('dt', 60, 's'),                                                                # 1
     ('<b>Radiator nominal specifications</b>', None, None),                         # 2
-    ('heat output', 1886.0, 'W'),                                                   # 3
-    ('water entering temperature', 75.0, '°C'),                                     # 4
+    ('heat output (Q_e)', 1886.0, 'W'),                                             # 3
+    ('water entering temperature (T_we)', 75.0, '°C'),                              # 4
     ('water leaving temperature', 65.0, '°C'),                                      # 5
-    ('room temperature', 20.0, '°C'),                                               # 6
+    ('room temperature (T_in)', 20.0, '°C'),                                        # 6
     ('radiator exponent', 1.3279, None),                                            # 7
     ('<b>Room thermal characteristics</b>', None, None),                            # 8
     ('room envelope thermal resistance', 0.019, 'K/W'),                             # 9
@@ -23,7 +23,7 @@ params = [
     ('set point', 22.0, '°C'),                                                      # 13
     ('high dead band limit', 1.0, 'K'),                                             # 14
     ('low dead band limit', -1.0, 'K'),                                             # 15
-    ('<b>Outdoor reset line (<code>Twe = c0 + c1 * To</code>)</b>', None, None),    # 16
+    ('<b>Outdoor reset line (<code>T_we = c0 + c1 * T_out</code>)</b>', None, None),    # 16
     ('constant term c0', 61.116, None),                                             # 17
     ('slope c1', -1.568, None),                                                     # 18
     ('<b>Valve motor</b>', None, None),                                             # 19
@@ -32,7 +32,7 @@ params = [
     ('valve authority', 0.5, None),                                                 # 22
     ('inherent rangeability', 150, None),                                           # 23
     ('flow rate at full open position', 2.052 / 1000.0 / 60.0, 'm^3/s'),            # 24
-    ('<b>Outdoor temperature</b>', None, None),                                     # 25
+    ('<b>Outdoor temperature (T_out)</b>', None, None),                             # 25
     ('daily average', 5.0, '°C'),                                                   # 26
     ('amplitude', 5.0, 'K'),                                                        # 27
     ('<b>Measuring sensor</b>', None, None),                                        # 28
