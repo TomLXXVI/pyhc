@@ -7,36 +7,36 @@ from nummath import graphing
 
 
 params = [
-    ('<b>Time step</b>', None, None),               # 0
-    ('dt', 60, 's'),                                # 1
-    ('<b>Radiator</b>', None, None),                # 2
-    ('Qe_nom', 1886.0, 'W'),                        # 3
-    ('Twe_nom', 75.0, '°C'),                        # 4
-    ('Twl_nom', 65.0, '°C'),                        # 5
-    ('Tr_nom', 20.0, '°C'),                         # 6
-    ('n', 1.3279, None),                            # 7
-    ('<b>Room</b>', None, None),                    # 8
-    ('R_tr', 0.019, 'K/W'),                         # 9
-    ('C_ra', 7.847e4, 'J/K'),                       # 10
-    ('C_bm', 1.862e6, 'J/K'),                       # 11
-    ('<b>Controller</b>', None, None),              # 12
-    ('SP', 22.0, '°C'),                             # 13
-    ('HL_offset', 1.0, 'K'),                        # 14
-    ('LL_offset', -1.0, 'K'),                       # 15
-    ('<b>Outdoor reset line</b>', None, None),      # 16
-    ('c0', 61.116, None),                           # 17
-    ('c1', -1.568, None),                           # 18
-    ('<b>Valve motor</b>', None, None),             # 19
-    ('travel_speed', 0.5, '%/s'),                   # 20
-    ('<b>Control valve</b>', None, None),           # 21
-    ('a', 0.5, None),                               # 22
-    ('R', 150, None),                               # 23
-    ('V_max', 2.052 / 1000.0 / 60.0, 'm^3/s'),      # 24
-    ('<b>Outdoor temperature</b>', None, None),     # 25
-    ('T_out_avg', 5.0, '°C'),                       # 26
-    ('T_out_ampl', 5.0, 'K'),                       # 27
-    ('<b>Measuring delay time</b>', None, None),    # 28
-    ('delay', 2, 'number of time steps')            # 29
+    ('<b>Time step</b>', None, None),                                               # 0
+    ('dt', 60, 's'),                                                                # 1
+    ('<b>Radiator nominal specifications</b>', None, None),                         # 2
+    ('heat output', 1886.0, 'W'),                                                   # 3
+    ('water entering temperature', 75.0, '°C'),                                     # 4
+    ('water leaving temperature', 65.0, '°C'),                                      # 5
+    ('room temperature', 20.0, '°C'),                                               # 6
+    ('radiator exponent', 1.3279, None),                                            # 7
+    ('<b>Room thermal characteristics</b>', None, None),                            # 8
+    ('room envelope thermal resistance', 0.019, 'K/W'),                             # 9
+    ('room air thermal capacity', 7.847e4, 'J/K'),                                  # 10
+    ('room envelope effective thermal capacity', 1.862e6, 'J/K'),                   # 11
+    ('<b>On/off-controller parameters</b>', None, None),                            # 12
+    ('set point', 22.0, '°C'),                                                      # 13
+    ('high dead band limit', 1.0, 'K'),                                             # 14
+    ('low dead band limit', -1.0, 'K'),                                             # 15
+    ('<b>Outdoor reset line (<code>Twe = c0 + c1 * To</code>)</b>', None, None),    # 16
+    ('constant term c0', 61.116, None),                                             # 17
+    ('slope c1', -1.568, None),                                                     # 18
+    ('<b>Valve motor</b>', None, None),                                             # 19
+    ('stem travel speed', 0.5, '%/s'),                                              # 20
+    ('<b>Control valve</b>', None, None),                                           # 21
+    ('valve authority', 0.5, None),                                                 # 22
+    ('inherent rangeability', 150, None),                                           # 23
+    ('flow rate at full open position', 2.052 / 1000.0 / 60.0, 'm^3/s'),            # 24
+    ('<b>Outdoor temperature</b>', None, None),                                     # 25
+    ('daily average', 5.0, '°C'),                                                   # 26
+    ('amplitude', 5.0, 'K'),                                                        # 27
+    ('<b>Measuring sensor</b>', None, None),                                        # 28
+    ('delay time', 2, 'number of time steps')                                       # 29
 ]
 
 
@@ -141,7 +141,7 @@ class GUI:
         widgets = []
         self.entries = []
         for p in params:
-            txt = ipw.HTML(p[0], layout=ipw.Layout(width='200px'))
+            txt = ipw.HTML(p[0], layout=ipw.Layout(width='300px'))
             if p[1]:
                 entry = ipw.FloatText(value=p[1], layout=ipw.Layout(width='100px'))
                 self.entries.append(entry)
@@ -158,17 +158,16 @@ class GUI:
             else:
                 widget = ipw.HBox((txt,))
             widgets.append(widget)
-        form_box = ipw.HBox([ipw.VBox(widgets[:16]), ipw.VBox(widgets[16:])])
-        form_box.layout.justify_content = "space-around"
-        self.check_box = ipw.Checkbox(description='outdoor reset', value=True)
+        form_box = ipw.VBox(widgets)
+        self.check_box = ipw.Checkbox(description='outdoor reset active', value=True, indent=False)
         submit_btn = ipw.Button(description='submit')
         submit_btn.on_click(lambda obj: self.cb_run())
-        btn_box = ipw.HBox([self.check_box, submit_btn])
-        btn_box.layout.justify_content = "space-around"
+        btn_box = ipw.VBox([self.check_box, submit_btn])
+        btn_box.layout.justify_content = "flex-start"
         self.plot_area = ipw.Output()
         plot_box = ipw.HBox([self.plot_area])
-        plot_box.layout.justify_content = "center"
-        gui = ipw.VBox([form_box, btn_box, plot_box])
+        gui = ipw.HBox([ipw.VBox([form_box, btn_box], layout=ipw.Layout(flex='0 0 auto')), plot_box])
+        gui.layout.justify_content = "flex-start"
         return gui
 
     def _init_gui(self):
@@ -186,7 +185,7 @@ class GUI:
     def _plot(self):
         data = self.control_loop.data_logger.get_data()
 
-        graph = graphing.MultiGraph(row_num=3, col_num=1, fig_size=[10, 15], dpi=150)
+        graph = graphing.MultiGraph(row_num=3, col_num=1, fig_size=[8, 12], dpi=96)
 
         graph[1].add_data_set('T_out', data['t'], data['T_out'])
         graph[1].add_data_set('T_bm', data['t'], data['T_bm'])
