@@ -24,7 +24,7 @@ params = [
     ('high dead band limit', 1.0, 'K'),                                             # 14
     ('low dead band limit', -1.0, 'K'),                                             # 15
     ('<b>Outdoor reset line (<code>T_we = c0 + c1 * T_out</code>)</b>', None, None),    # 16
-    ('constant term c0', 61.116, None),                                             # 17
+    ('constant term c0', 61.116, '°C'),                                             # 17
     ('slope c1', -1.568, None),                                                     # 18
     ('<b>Valve motor</b>', None, None),                                             # 19
     ('stem travel speed', 0.5, '%/s'),                                              # 20
