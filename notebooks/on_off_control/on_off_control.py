@@ -3,7 +3,7 @@ import ipywidgets as ipw
 from hvac.components import Radiator, ControlValve, ControlValveMotor
 from hvac.process import Room, OutsideTemperature, DeadTime
 from hvac.controller import OnOffController, OutdoorResetController, DataLogger
-from nummath import graphing
+from nummath.bq_graphing import LineGraph, GraphMatrix
 
 
 params = [
@@ -134,10 +134,10 @@ class ControlLoop:
 
 class GUI:
     def __init__(self):
+        self.control_loop = None
         self.gui = self._create_gui()
-        self._init_gui()
 
-    def _create_gui(self):
+    def _create_form(self):
         widgets = []
         self.entries = []
         for p in params:
@@ -158,64 +158,97 @@ class GUI:
             else:
                 widget = ipw.HBox((txt,))
             widgets.append(widget)
-        form_box = ipw.VBox(widgets)
+        return ipw.HBox(
+            [ipw.VBox(widgets[:16]), ipw.VBox(widgets[16:])],
+            layout=ipw.Layout(justify_content='space-around')
+        )
+
+    def _create_button_bar(self):
         self.check_box = ipw.Checkbox(description='outdoor reset active', value=True, indent=False)
         submit_btn = ipw.Button(description='submit')
-        submit_btn.on_click(lambda obj: self.cb_run())
-        btn_box = ipw.VBox([self.check_box, submit_btn])
-        btn_box.layout.justify_content = "flex-start"
-        self.plot_area = ipw.Output()
-        plot_box = ipw.HBox([self.plot_area])
-        gui = ipw.HBox([ipw.VBox([form_box, btn_box], layout=ipw.Layout(flex='0 0 auto')), plot_box])
-        gui.layout.justify_content = "flex-start"
-        return gui
+        submit_btn.on_click(lambda obj: self._cb_run())
+        btn_box = ipw.HBox([self.check_box, submit_btn], layout=ipw.Layout(justify_content='space-around'))
+        return btn_box
 
-    def _init_gui(self):
+    def _create_diagrams(self):
         values = [entry.value for entry in self.entries]
         self.control_loop = ControlLoop(*values)
         self.control_loop.outdoor_reset = self.check_box.value
         self.control_loop.run()
-        with self.plot_area:
-            self._plot()
+        return self._build_diagrams()
 
-    def cb_run(self):
-        self.plot_area.clear_output(wait=True)
-        self._init_gui()
+    def _create_gui(self):
+        form = self._create_form()
+        button_bar = self._create_button_bar()
+        diagrams = self._create_diagrams()
+        gui = ipw.VBox([form, button_bar, diagrams])
+        gui.layout.justify_content = "flex-start"
+        return gui
 
-    def _plot(self):
-        data = self.control_loop.data_logger.get_data()
+    def _cb_run(self):
+        values = [entry.value for entry in self.entries]
+        self.control_loop = ControlLoop(*values)
+        self.control_loop.outdoor_reset = self.check_box.value
+        self.control_loop.run()
+        self._update_diagrams()
 
-        graph = graphing.MultiGraph(row_num=3, col_num=1, fig_size=[8, 12], dpi=96)
+    def _build_diagrams(self):
+        data = self.control_loop.get_data()
+        self.T_graph = LineGraph(
+            x_data=data['t'],
+            y_data=[data['T_we'], data['T_in'], data['T_bm'], data['T_out']],
+            labels=[
+                'entering water temperature',
+                'indoor temperature',
+                'room envelope temperature',
+                'outdoor temperature'
+            ],
+            param_dict={
+                'figure': {'title': 'Temperatures'},
+                'x-axis': {'title': 'time [h]', 'min': 0, 'max': 24},
+                'y-axis': {'title': 'T [°C]', 'min': -20, 'max': 90},
+            }
+        )
+        self.T_graph.add_legend()
+        self.T_graph.add_toolbar()
+        self.T_graph.draw()
+        self.Q_graph = LineGraph(
+            x_data=data['t'],
+            y_data=[data['Q_e']],
+            labels=['radiator heat output'],
+            param_dict={
+                'figure': {'title': 'Radiator heat output'},
+                'x-axis': {'title': 'time [h]', 'min': 0, 'max': 24},
+                'y-axis': {'title': 'Qe [W]', 'min': 0, 'max': int(max(data['Q_e']))},
+            }
+        )
+        self.Q_graph.add_toolbar()
+        self.Q_graph.draw()
+        self.ctrl_graph = LineGraph(
+            x_data=data['t'],
+            y_data=[data['out'], data['h']],
+            labels=['controller output', 'valve stem position'],
+            param_dict={
+                'figure': {'title': 'Controller output'},
+                'x-axis': {'title': 'time [h]', 'min': 0, 'max': 24},
+                'y-axis': {'title': 'out, h', 'min': 0, 'max': 100},
+            }
+        )
+        self.ctrl_graph.add_legend()
+        self.ctrl_graph.add_toolbar()
+        self.ctrl_graph.draw()
+        graph_matrix = GraphMatrix(self.T_graph, self.Q_graph, self.ctrl_graph)
+        return graph_matrix.get_widget()
 
-        graph[1].add_data_set('T_out', data['t'], data['T_out'])
-        graph[1].add_data_set('T_bm', data['t'], data['T_bm'])
-        graph[1].add_data_set('T_in', data['t'], data['T_in'])
-        graph[1].add_data_set('T_we', data['t'], data['T_we'])
-        graph[1].add_legend(loc='upper right')
-        graph[1].set_axis_titles('time (h)', 'T_out, T_bm, T_in, T_we (°C)')
-        graph[1].scale_x_axis(data.iloc[0, 0], data.iloc[-1, 0], 2.0)
-        graph[1].scale_y_axis(-10.0, 80.0, 5.0)
-        graph[1].turn_grid_on()
-        graph[1].draw_graph()
+    def _update_diagrams(self):
+        data = self.control_loop.get_data()
+        self.T_graph.update_y_data([data['T_we'], data['T_in'], data['T_bm'], data['T_out']])
+        self.Q_graph.update_y_data([data['Q_e']])
+        self.Q_graph.y_scale.max = int(max(data['Q_e']))
+        self.ctrl_graph.update_y_data([data['out'], data['h']])
 
-        graph[2].add_data_set('Qe', data['t'], data['Q_e'])
-        graph[2].set_axis_titles('time (h)', 'Q_e (W)')
-        graph[2].scale_x_axis(data.iloc[0, 0], data.iloc[-1, 0], 2.0)
-        graph[2].turn_grid_on()
-        graph[2].draw_graph()
-
-        graph[3].add_data_set('out', data['t'], data['out'])
-        graph[3].add_data_set('h', data['t'], data['h'])
-        graph[3].add_legend()
-        graph[3].set_axis_titles('time (h)', 'out, h (%)')
-        graph[3].scale_x_axis(data.iloc[0, 0], data.iloc[-1, 0], 2.0)
-        graph[3].turn_grid_on()
-        graph[3].draw_graph()
-
-        graph.show_graph()
-
-    def show(self):
+    def get_widget(self):
         return self.gui
 
 
-gui = GUI().show()
+gui = GUI().get_widget()
