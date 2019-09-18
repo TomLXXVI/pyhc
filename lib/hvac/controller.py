@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from nummath import interpolation
+from nummath import interpolation, graphing
 
 
 class PIDController:
@@ -303,12 +303,14 @@ class DataLogger:
 
 
 class OutdoorResetController:
-    def __init__(self, c0=None, c1=None):
+    def __init__(self, c0=None, c1=None, T_min=None, T_max=None):
         """
         Initialize OutdoorResetController with the coefficients of the reset line.
         The reset line is a straight line defining the water entering temperature as function of outdoor temperature:
         T_we = coeffs[0] + coeffs[1] * T_out
         """
+        self.T_min = T_min
+        self.T_max = T_max
         if None not in [c0, c1]:
             self.c0 = c0
             self.c1 = c1
@@ -332,11 +334,24 @@ class OutdoorResetController:
         Q_load_array = np.array([K * (T_in_des - T_out_i) for T_out_i in T_out_array])
         T_we_array = np.array([radiator.calc_Twe(Q_load_i, V_w_des, T_in_des) for Q_load_i in Q_load_array])
         coeffs = interpolation.LinReg(T_out_array, T_we_array).solve()
+        self.T_min = T_out_des
+        self.T_max = T_in_des
         self.c0 = coeffs[0]
         self.c1 = coeffs[1]
 
     def get_coefficients(self):
         return self.c0, self.c1
+
+    def plot_reset_line(self, fig_size=None, dpi=None):
+        graph = graphing.Graph(fig_size=fig_size, dpi=dpi)
+        x_data = np.linspace(self.T_min, self.T_max, endpoint=True)
+        y_data = self.c0 + self.c1 * x_data
+        graph.add_data_set('reset line', x=x_data, y=y_data)
+        graph.scale_y_axis(lim_min=int(np.min(y_data)), lim_max=int(np.max(y_data)) + 2, tick_step=2)
+        graph.turn_grid_on()
+        graph.set_axis_titles(x_title='Tout [°C]', y_title='Twe [°C]')
+        graph.draw_graph()
+        return graph
 
     def __call__(self, T_out):
         T_we = self.c0 + self.c1 * T_out

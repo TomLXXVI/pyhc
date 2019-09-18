@@ -144,9 +144,8 @@ class MultiGraph:
     def set_title(self, title):
         self.figure.suptitle(title)
 
-    @staticmethod
-    def show_graph():
-        plt.tight_layout()
+    def show_graph(self):
+        self.figure.tight_layout()
         plt.show()
 
 
