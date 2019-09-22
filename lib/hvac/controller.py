@@ -238,18 +238,25 @@ class PWMController:
             - PV_range      measuring range of the PWM controller
             - dt            sampling time of PWM controller (seconds)
         """
+        self.SP = SP
         self.T = n * dt         # PWM cycle period is an integer multiple of the controller's sampling time
         self.cycle_output = []  # PWM output cycle
         self.n = n
         self.dt = dt
         self.pid_controller = PIDController(SP, Kr, ti, td, bias, PV_range, dt)
 
-    @property
-    def SP(self):
-        return self.pid_controller.SP
+    # @property
+    # def SP(self):
+    #     return self.pid_controller.SP
+    #
+    # @SP.setter
+    # def SP(self, value):
+    #     """
+    #     Change controller set point.
+    #     """
+    #     self.pid_controller.set_point(value)
 
-    @SP.setter
-    def SP(self, value):
+    def set_point(self, value):
         """
         Change controller set point.
         """
